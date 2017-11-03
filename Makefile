@@ -1,0 +1,3 @@
+all:
+    echo Compiling $(CLION_EXE_DIR)/$@ ...
+    g++ main.cpp -o $(CLION_EXE_DIR)/wandstem-flash-utility
