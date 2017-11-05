@@ -4,7 +4,7 @@
 
 #include "Program.h"
 #include "Exceptions.h"
-#include <iostream>
+#include "Device.h"
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <csignal>
@@ -140,20 +140,15 @@ void Program::flash_if_needed() {
 }
 
 void Program::read_to_end() {
-    return;
-    //TODO manage device output stream
     if (!args.print) return;
     if (auto *p = dynamic_cast<USBDevice*>(device)) {
         cout << "Cannot read standard output from a device connected in USB mode." << endl;
         return;
     }
-    try {
-        device->redirect_output(cout);
-    } catch (ios::failure &ex) {
-        cout << "Physical communication with the device error:" << endl << ex.what() << ". Cannot read from the device."
-             << endl;
-    }
+    if(!device->open_comm())
+        cout << "Generic error while enstablishing communication with the device" << endl;
     for (; running;);
+        device->read_and_print<char>();
 }
 
 void Program::stop(int sig) {

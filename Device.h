@@ -10,6 +10,9 @@
 #include <ios>
 #include <boost/date_time.hpp>
 #include <chrono>
+#include <thread>
+#include <condition_variable>
+#include <regex>
 #include "serial-port/6_stream/serialstream.h"
 
 #define MAX_RETRANSMISSION 5
@@ -30,7 +33,28 @@ private:
      * @param timeout the maximum waiting period.
      * @return if the output matched.
      */
-    bool check_output(std::string regex_string, std::chrono::milliseconds timeout);
+    template<typename _Rep, typename _Period>
+    bool check_output(std::string regex_string, const std::chrono::duration<_Rep, _Period> &timeout) {
+        std::mutex m;
+        std::condition_variable cv;
+
+        std::thread t([&m, &cv, &regex_string, this]() {
+            std::regex r(regex_string);
+            for (bool detected = false; !detected;) {
+                std::string s = read_and_print<std::string>();
+                if (regex_match(s, r))
+                    detected = true;
+            }
+            cv.notify_one();
+        });
+
+        t.detach();
+
+        {
+            std::unique_lock<std::mutex> l(m);
+            return cv.wait_for(l, timeout) <= std::cv_status::timeout;
+        }
+    }
 
 protected:
 
@@ -41,13 +65,10 @@ protected:
     unsigned int baud;
 
     /// The stream related to the device.
-    SerialStream *serial_stream;
+    SerialStream serial_stream;
 
     /// If the communication with the device is opened.
     bool comm_opened = false;
-
-    /// The pointer to the original output buffer of the device.
-    std::streambuf *outbuf = nullptr;
 
     /**
      * Constructor. Initializes the object.
@@ -55,7 +76,8 @@ protected:
      * \param baud the baud to be used for the serial communication
      * \return
      */
-    Device(std::string path, unsigned int baud) : path(std::move(path)), baud(baud) {};
+    Device(std::string path, unsigned int baud) : path(std::move(path)), baud(baud), serial_stream(
+            *(new SerialOptions(path, baud, boost::posix_time::seconds(2)))) {};
 
     /**
      * Checks that the device is present at the specified Device::path.
@@ -78,6 +100,8 @@ protected:
 
 public:
 
+    virtual ~Device() = default;
+
     /**
      * Opens the SerialStream with the device.
      * \throws DeviceNotFoundException If the device unexpectedly stop responding.
@@ -91,7 +115,12 @@ public:
      * \return the read value.
      */
     template<class T>
-    T read_and_print();
+    T read_and_print() {
+        T retval;
+        serial_stream.read(reinterpret_cast<char*>(&retval), sizeof(retval));
+        std::cout << retval;
+        return retval;
+    }
 
     /**
      * \internal
@@ -105,21 +134,6 @@ public:
      * \return
      */
     void flash(std::string filename);
-
-    /**
-     * Redirects the stream output to another stream.
-     * Useful for printing device debug strings to screen or file.
-     * \throws DeviceNotFoundException If the device did not respond.
-     * \param targetbuf The buffer to which redirect the output.
-     * \return
-     */
-    void redirect_output(std::ostream &targetbuf);
-
-    /**
-     * Restores the device output stream.
-     * \return
-     */
-    void reset_output();
 
     /**
      * Closes the stream communication with the device, if opened.
