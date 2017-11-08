@@ -16,6 +16,7 @@
 #include "serial-port/6_stream/serialstream.h"
 
 #define MAX_RETRANSMISSION 5
+#define DEVICE_TIMEOUT_MSEC 2500
 
 #define BOOTLOADER_REGEX_STRICT "^BOOTLOADER version (.+) Chip ID ([0-9A-F]+)(\\r)?$"
 #define BOOTLOADER_REGEX_NOSTRICT "^(BOOTLOADER version (.+) Chip ID ([0-9A-F]+)|\\?)(\\r)?$"
@@ -34,26 +35,17 @@ private:
      * @return if the output matched.
      */
     template<typename _Rep, typename _Period>
-    bool check_output(std::string regex_string, const std::chrono::duration<_Rep, _Period> &timeout) {
-        std::mutex m;
-        std::condition_variable cv;
-
-        std::thread t([&m, &cv, &regex_string, this]() {
-            std::regex r(regex_string);
-            for (bool detected = false; !detected;) {
-                std::string s = read_and_print<std::string>();
-                if (regex_match(s, r))
-                    detected = true;
-            }
-            cv.notify_one();
-        });
-
-        t.detach();
-
-        {
-            std::unique_lock<std::mutex> l(m);
-            return cv.wait_for(l, timeout) <= std::cv_status::timeout;
+    bool check_output(const std::string &regex_string, const std::chrono::duration<_Rep, _Period> &timeout) {
+        std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now() + timeout;
+        std::regex r(regex_string);
+        bool detected = false;
+        while (!detected && std::chrono::system_clock::now() < end) {
+            std::string s = read_and_print<std::string>();
+            if (regex_match(s, r))
+                detected = true;
         }
+
+        return detected;
     }
 
 protected:
@@ -77,7 +69,7 @@ protected:
      * \return
      */
     Device(std::string path, unsigned int baud) : path(std::move(path)), baud(baud), serial_stream(
-            *(new SerialOptions(path, baud, boost::posix_time::seconds(2)))) {};
+            SerialOptions(this->path, baud, boost::posix_time::milliseconds(DEVICE_TIMEOUT_MSEC))) {};
 
     /**
      * Checks that the device is present at the specified Device::path.
@@ -87,6 +79,7 @@ protected:
 
     /**
      * Checks wether the device is connected in bootloader mode.
+     * \param strict if the check doesn't also admit the '?' for unrecognized input
      * \return if the device is in bootloader mode.
      */
     bool detect_bootloader_mode(bool strict = true);
@@ -97,6 +90,14 @@ protected:
      * \return if the device is ready to be flashed.
      */
     virtual bool prepare_flash();
+
+    /**
+     * Sends a raw byte to the device.
+     * \param data the raw byte to be sent
+     * \param path if the stream needs to be flushed
+     * \return
+     */
+    void send_byte(uint8_t data, bool flush = true);
 
 public:
 
@@ -118,7 +119,7 @@ public:
     T read_and_print() {
         T retval;
         serial_stream.read(reinterpret_cast<char*>(&retval), sizeof(retval));
-        std::cout << retval;
+        std::cout << retval << std::flush;
         return retval;
     }
 
