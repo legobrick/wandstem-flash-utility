@@ -27,7 +27,7 @@
  */
 class Device {
 
-private:
+protected:
     /**
      * Checks that the serial outputs a string matching with the provided one within a certain timeout.
      * @param regex_string the string to be match against.
@@ -48,8 +48,6 @@ private:
         return detected;
     }
 
-protected:
-
     /// The path to the device.
     std::string path;
 
@@ -66,10 +64,11 @@ protected:
      * Constructor. Initializes the object.
      * \param path the path to the device
      * \param baud the baud to be used for the serial communication
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    Device(std::string path, unsigned int baud) : path(std::move(path)), baud(baud), serial_stream(
-            SerialOptions(this->path, baud, boost::posix_time::milliseconds(DEVICE_TIMEOUT_MSEC))) {};
+    Device(std::string path, unsigned int baud, bool infinite_timeout = false) : path(std::move(path)), baud(baud), serial_stream(
+            SerialOptions(this->path, baud, boost::posix_time::milliseconds(infinite_timeout? 0 : DEVICE_TIMEOUT_MSEC))) {};
 
     /**
      * Checks that the device is present at the specified Device::path.
@@ -148,33 +147,38 @@ public:
  */
 class UARTDevice : public Device {
 
+private:
+    /**
+     * Prepares the device to be flashed.
+     * It initializes the bootloader for accepting binary images.
+     * \return if the device is ready to be flashed.
+     */
+    bool prepare_flash() override;
+
 public:
     /**
      * Constructor. Initializes a default serial connected Wandstem: /dev/USB0 with 115200 baud rate.
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    UARTDevice() : Device("/dev/ttyUSB0", 115200) {};
-
-    /**
-     * Opens the SerialStream with the device and does the autobaud.
-     * \return if the stream was opened successfully.
-     */
-    bool open_comm() override;
+    explicit UARTDevice(bool infinite_timeout = false) : Device("/dev/ttyUSB0", 115200, infinite_timeout) {};
 
     /**
      * Constructor. Initializes a default serial connected Wandstem with the specified path and 115200 baud rate.
      * \param path The path to the device.
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    explicit UARTDevice(std::string path) : Device(std::move(path), 115200) {};
+    UARTDevice(std::string path, bool infinite_timeout = false) : Device(std::move(path), 115200, infinite_timeout) {};
 
     /**
      * Constructor. Initializes a default serial connected Wandstem with the specified path and the specified baud rate.
      * \param path The path to the device.
      * \param baud The baud rate for communicating with the device.
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    UARTDevice(std::string path, unsigned int baud) : Device(std::move(path), baud) {};
+    UARTDevice(std::string path, unsigned int baud, bool infinite_timeout = false) : Device(std::move(path), baud, infinite_timeout) {};
 };
 
 /**
@@ -185,24 +189,27 @@ class USBDevice : public Device {
 public:
     /**
      * Constructor. Initializes a default USB connected Wandstem: /dev/ttyACM0 with 9600 baud rate.
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    USBDevice() : Device("/dev/ttyACM0", 9600) {};
+    explicit USBDevice(bool infinite_timeout = false) : Device("/dev/ttyACM0", 9600, infinite_timeout) {};
 
     /**
      * Constructor. Initializes a default USB connected Wandstem with the specified path and 9600 baud rate.
      * \param path The path to the device.
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    explicit USBDevice(std::string path) : Device(std::move(path), 9600) {};
+    USBDevice(std::string path, bool infinite_timeout = false) : Device(std::move(path), 9600, infinite_timeout) {};
 
     /**
      * Constructor. Initializes a default USB connected Wandstem with the specified path and the specified baud rate.
      * \param path The path to the device.
      * \param baud The baud rate for communicating with the device.
+     * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    USBDevice(std::string path, unsigned int baud) : Device(std::move(path), baud) {};
+    USBDevice(std::string path, unsigned int baud, bool infinite_timeout = false) : Device(std::move(path), baud, infinite_timeout) {};
 };
 
 

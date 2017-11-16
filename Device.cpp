@@ -30,19 +30,6 @@ bool Device::open_comm() {
     return comm_opened;
 }
 
-bool UARTDevice::open_comm() {
-    if (comm_opened) return true;
-    serial_stream.exceptions(ios::badbit | ios::failbit);
-    comm_opened = serial_stream.good();
-    if (comm_opened){
-        //send a 'U' for autobaud the interface
-        serial_stream << "U" << flush;
-        if (!detect_bootloader_mode(false))
-            throw DeviceNotFoundException("Device not connected or not in bootloader mode");
-        return true;
-    } else return false;
-}
-
 template<>
 std::string Device::read_and_print<std::string>() {
     std::string retval;
@@ -73,6 +60,22 @@ bool Device::prepare_flash() {
     //start the upload mode of the bootloader
     serial_stream << "u" << flush;
     return retval && check_output("^Ready(\\r)?$", chrono::milliseconds(1000));
+}
+
+bool UARTDevice::prepare_flash() {
+    if (!check_device_present())
+        throw DeviceNotFoundException("Device not found");
+    if (!open_comm()) return false;
+
+    //send a 'U' for autobaud the interface
+    serial_stream << "U" << flush;
+    if (!detect_bootloader_mode(false))
+        throw DeviceNotFoundException("Device not connected or not in bootloader mode");
+
+    cout << " :: Enabling firmware upload mode ::" << endl;
+    //start the upload mode of the bootloader
+    serial_stream << "u" << flush;
+    return check_output("^Ready(\\r)?$", chrono::milliseconds(1000));
 }
 
 void Device::send_byte(uint8_t data, bool flush) {

@@ -97,22 +97,25 @@ void Program::init(int argc, const char *argv[]) {
     signal(SIGINT, stop);
 
     //init the device
+}
+
+void Program::init_device(bool infinite_timeout) {
     if (args.device_path.empty()) {
         //check for the mode
         switch (args.flash_mode) {
             case USB:
-                device = new USBDevice();
+                device = new USBDevice(infinite_timeout);
                 break;
             case SERIAL:
-                device = new UARTDevice();
+                device = new UARTDevice(infinite_timeout);
                 break;
             case AUTO:
             default:
                 struct stat buffer;
                 if (stat("/dev/ttyACM0", &buffer) == 0)
-                    device = new USBDevice();
+                    device = new USBDevice(infinite_timeout);
                 else if (stat("/dev/ttyUSB0", &buffer) == 0)
-                    device = new UARTDevice();
+                    device = new UARTDevice(infinite_timeout);
                 else
                     throw DeviceNotFoundException(
                             "Device not found using auto discovery. Please specify the device path.");
@@ -121,20 +124,21 @@ void Program::init(int argc, const char *argv[]) {
     } else {
         if (boost::to_upper_copy(args.device_path).find("ACM")) {
             if (args.baud == -1)
-                device = new USBDevice(args.device_path);
+                device = new USBDevice(args.device_path, infinite_timeout);
             else
-                device = new USBDevice(args.device_path, args.baud);
+                device = new USBDevice(args.device_path, args.baud, infinite_timeout);
         } else {
             if (args.baud == -1)
-                device = new UARTDevice(args.device_path);
+                device = new UARTDevice(args.device_path, infinite_timeout);
             else
-                device = new UARTDevice(args.device_path, args.baud);
+                device = new UARTDevice(args.device_path, args.baud, infinite_timeout);
         }
     }
 }
 
 void Program::flash_if_needed() {
     if (args.bin_path.empty()) return;
+    init_device();
     try {
         device->flash(args.bin_path);
     } catch (XmodemTransmissionException &ex) {
@@ -154,18 +158,19 @@ void Program::flash_if_needed() {
 
 void Program::read_to_end() {
     if (!args.print) return;
+    init_device(true);
     if (auto *p = dynamic_cast<USBDevice*>(device)) {
         cout << "Cannot read standard output from a device connected in USB mode." << endl;
         return;
     }
     if(!device->open_comm())
         cout << "Generic error while enstablishing communication with the device" << endl;
-    for (; running;);
+    for (; running;)
         device->read_and_print<char>();
 }
 
 void Program::stop(int sig) {
     auto& p = Program::get_instance();
-    p.device->close_comm();
+    if(p.device != nullptr) p.device->close_comm();
     p.running = false;
 }

@@ -64,6 +64,13 @@ public:
     void init(int argc, const char *argv[]);
 
     /**
+     * Initializes or re-initializes the device with the specified parameters, with the optionality of the timeout
+     * \param infinite_timeout if the device should have an infinite timeout or not.
+     * \return
+     */
+    void init_device(bool infinite_timeout = false);
+
+    /**
      * Flashes the device is specified in the arguments.
      * \return
      */
