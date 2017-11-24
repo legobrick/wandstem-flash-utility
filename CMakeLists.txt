@@ -11,6 +11,8 @@ set(TEST_HDRS serial-port/6_stream/serialstream.h Program.h Device.h  XmodemPack
 add_executable(wandstem-flash ${TEST_SRCS} ${TEST_HDRS})
 
 ## Link libraries
+set(BOOST_USE_STATIC_LIBS   ON)
+set(BOOST_ROOT /usr/local)
 set(BOOST_LIBS thread date_time system program_options)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
