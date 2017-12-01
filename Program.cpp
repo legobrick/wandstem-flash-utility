@@ -138,8 +138,8 @@ void Program::init_device(bool infinite_timeout) {
 
 void Program::flash_if_needed() {
     if (args.bin_path.empty()) return;
-    init_device();
     try {
+        init_device();
         device->flash(args.bin_path);
     } catch (XmodemTransmissionException &ex) {
         cout << "Xmodem transmission error:" << endl << ex.what() << ". Flash operation aborted." << endl;
@@ -158,7 +158,15 @@ void Program::flash_if_needed() {
 
 void Program::read_to_end() {
     if (!args.print) return;
-    init_device(true);
+    bool device_inited = false;
+    try {
+        init_device(true);
+        device_inited = true;
+    } catch (DeviceNotFoundException &ex) {
+        cout << "Error while establishing communication with device:" << endl << ex.what()
+             << ". Flash operation aborted." << endl;
+    }
+    if (!device_inited) return;
     if (auto *p = dynamic_cast<USBDevice*>(device)) {
         cout << "Cannot read standard output from a device connected in USB mode." << endl;
         return;
