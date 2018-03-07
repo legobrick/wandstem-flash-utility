@@ -11,27 +11,27 @@
 
 class DeviceNotFoundException : public std::ios_base::failure {
 public:
-    explicit DeviceNotFoundException(const std::__cxx11::string &arg) : failure(arg) {}
+    explicit DeviceNotFoundException(const std::string &arg) : failure(arg) {}
 };
 
 class BinaryNotFoundException : public std::ios_base::failure {
 public:
-    explicit BinaryNotFoundException(const std::__cxx11::string &arg) : failure(arg) {}
+    explicit BinaryNotFoundException(const std::string &arg) : failure(arg) {}
 };
 
 class XmodemTransmissionException : public std::ios_base::failure {
 public:
-    explicit XmodemTransmissionException(const std::__cxx11::string &arg) : failure(arg) {}
+    explicit XmodemTransmissionException(const std::string &arg) : failure(arg) {}
 };
 
 class FileIOException : public std::ios_base::failure {
 public:
-    explicit FileIOException(const std::__cxx11::string &arg) : failure(arg) {}
+    explicit FileIOException(const std::string &arg) : failure(arg) {}
 };
 
 class WontExecuteException : public std::ios_base::failure {
 public:
-    explicit WontExecuteException(const std::__cxx11::string &arg) : failure(arg) {}
+    explicit WontExecuteException(const std::string &arg) : failure(arg) {}
 };
 
 #endif //WANDSTEM_FLASH_UTILITY_EXCEPTIONS_H

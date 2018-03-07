@@ -5,7 +5,7 @@ This tool helps you flashing a binary file to a [Wandstem board](http://miosix.o
 ## Getting Started
 
 In order to build this project you will need:
-- cmake >= 3.8
+- cmake >= 3.5
 - Boost
 
 ## License

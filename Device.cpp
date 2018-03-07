@@ -44,9 +44,9 @@ bool Device::check_device_present() {
 }
 
 bool Device::detect_bootloader_mode(bool strict) {
-    if(!check_output(strict? BOOTLOADER_REGEX_STRICT: BOOTLOADER_REGEX_NOSTRICT, chrono::milliseconds(1000))){
+    if(!check_output(strict? bootloaderRegexStrict: bootloaderRegexNoStrict, chrono::milliseconds(1000))){
         serial_stream << "i" << flush;
-        return check_output(BOOTLOADER_REGEX_STRICT, chrono::milliseconds(1000));
+        return check_output(bootloaderRegexStrict, chrono::milliseconds(1000));
     }
     return true;
 }
@@ -104,9 +104,9 @@ void Device::flash(std::string filename) {
     bool ack = false;
     XmodemPacket pkt;
     //wait for 'C' meaning the device is accepting an XMODEM transfer
-    for (int retry = 0; !ack && retry < MAX_RETRANSMISSION; retry++) {
+    for (int retry = 0; !ack && retry < maxRetransmission; retry++) {
         reply = read_and_print<uint8_t>();
-        ack = reply == XMODEM_NCG;
+        ack = reply == xmodemNcg;
     }
     if (!ack)
         throw XmodemTransmissionException("The device is not accepting the transmission using XMODEM protocol");
@@ -118,17 +118,17 @@ void Device::flash(std::string filename) {
         try {
             pkt.read_from_binfile(file);
         } catch (FileIOException &ex) {
-            send_byte(XMODEM_CAN);
-            send_byte(XMODEM_CAN);
-            send_byte(XMODEM_CAN);
+            send_byte(xmodemCan);
+            send_byte(xmodemCan);
+            send_byte(xmodemCan);
             throw ex;
         }
         pkt.compute_crc();
         ack = false;
         //send the packet
-        for (int retry = 0; !ack && retry < MAX_RETRANSMISSION; retry++) {
+        for (int retry = 0; !ack && retry < maxRetransmission; retry++) {
             char* pkt_content = pkt.get_content();
-            serial_stream.write(pkt_content, XMODEM_PACKET_SIZE);
+            serial_stream.write(pkt_content, xmodemPacketSize);
             serial_stream.flush();
             serial_stream.read(reinterpret_cast<char*>(&reply), sizeof(reply));
             if (retry) cout << '\b' << flush;
@@ -137,21 +137,21 @@ void Device::flash(std::string filename) {
                 cout << endl;
             }
             switch (reply) {
-                case XMODEM_ACK: //packet acknowledged
+                case xmodemAck: //packet acknowledged
                     cout << '.' << flush;
                     ack = true;
                     break;
-                case XMODEM_CAN: //cancelled by target
+                case xmodemCan: //cancelled by target
                     cout << 'C' << flush;
                     serial_stream.read(reinterpret_cast<char *>(&reply), 1);
-                    if (reply == XMODEM_CAN) {
+                    if (reply == xmodemCan) {
                         serial_stream.read(reinterpret_cast<char *>(&reply), 1);
-                        send_byte(XMODEM_ACK);
+                        send_byte(xmodemAck);
                         cout << endl;
                         throw XmodemTransmissionException("Transmission cancelled by target");
                     }
                     break;
-                case XMODEM_NAK: //otherwise retry
+                case xmodemNak: //otherwise retry
                     cout << 'N' << flush;
                 default:
                     break;
@@ -159,9 +159,9 @@ void Device::flash(std::string filename) {
         }
         //too many errors, aborting
         if (!ack) {
-            send_byte(XMODEM_CAN);
-            send_byte(XMODEM_CAN);
-            send_byte(XMODEM_CAN);
+            send_byte(xmodemCan);
+            send_byte(xmodemCan);
+            send_byte(xmodemCan);
             cout << endl;
             throw XmodemTransmissionException("Too many errors while sending packet, transmission aborted");
         }
@@ -170,10 +170,10 @@ void Device::flash(std::string filename) {
     ack = false;
     cout << endl << " :: End of transmission, " << num_pkts << " packets sent ::" << endl;
     //communicate the end of the transmission and wait for its ack
-    for (int retry = 0; !ack && retry < 2 * MAX_RETRANSMISSION; retry++) {
-        send_byte(XMODEM_EOT);
+    for (int retry = 0; !ack && retry < 2 * maxRetransmission; retry++) {
+        send_byte(xmodemEot);
         serial_stream.read(reinterpret_cast<char *>(&reply), 1);
-        ack = reply == XMODEM_ACK;
+        ack = reply == xmodemAck;
     }
     if (ack) {
         cout << " :: Rebooting the device... ::" << endl;

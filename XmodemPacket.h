@@ -10,15 +10,17 @@
 #include <boost/crc.hpp>
 #include <mutex>
 
-#define XMODEM_SOH                1
-#define XMODEM_EOT                4
-#define XMODEM_ACK                6
-#define XMODEM_NAK                21
-#define XMODEM_CAN                24
-#define XMODEM_NCG                67
+enum {
+    xmodemSoh=1,
+    xmodemEot=4,
+    xmodemAck=6,
+    xmodemNak=21,
+    xmodemCan=24,
+    xmodemNcg=67
+};
 
-#define XMODEM_DATA_SIZE          128
-#define XMODEM_PACKET_SIZE          133
+static const int xmodemDataSize=128;
+static const int xmodemPacketSize=133;
 
 
 class XmodemPacket {
@@ -28,7 +30,7 @@ private:
         uint8_t start;
         uint8_t block_num;
         uint8_t block_num_neg;
-        uint8_t payload[XMODEM_DATA_SIZE];
+        uint8_t payload[xmodemDataSize];
         uint16_t crc;
     } __attribute__((packed)) content;
 

@@ -15,11 +15,11 @@
 #include <regex>
 #include "serial-port/6_stream/serialstream.h"
 
-#define MAX_RETRANSMISSION 5
-#define DEVICE_TIMEOUT_MSEC 2500
+static const int maxRetransmission=5;
+static const int deviceTimeoutMsec=2500;
 
-#define BOOTLOADER_REGEX_STRICT "^BOOTLOADER version (.+) Chip ID ([0-9A-F]+)(\\r)?$"
-#define BOOTLOADER_REGEX_NOSTRICT "^(BOOTLOADER version (.+) Chip ID ([0-9A-F]+)|\\?)(\\r)?$"
+static const std::string bootloaderRegexStrict="^BOOTLOADER version (.+) Chip ID ([0-9A-F]+)(\\r)?$";
+static const std::string bootloaderRegexNoStrict="^(BOOTLOADER version (.+) Chip ID ([0-9A-F]+)|\\?)(\\r)?$";
 
 
 /**
@@ -68,7 +68,7 @@ protected:
      * \return
      */
     Device(std::string path, unsigned int baud, bool infinite_timeout = false) : path(std::move(path)), baud(baud), serial_stream(
-            SerialOptions(this->path, baud, boost::posix_time::milliseconds(infinite_timeout? 0 : DEVICE_TIMEOUT_MSEC))) {};
+            SerialOptions(this->path, baud, boost::posix_time::milliseconds(infinite_timeout? 0 : deviceTimeoutMsec))) {};
 
     /**
      * Checks that the device is present at the specified Device::path.
@@ -141,6 +141,9 @@ public:
      */
     void close_comm();
 };
+
+template<>
+std::string Device::read_and_print<std::string>();
 
 /**
  * This class models a serial connected Device with which the program will operate.
