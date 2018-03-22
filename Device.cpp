@@ -43,14 +43,6 @@ bool Device::check_device_present() {
     return static_cast<bool>(stat(path.c_str(), &buffer) == 0);
 }
 
-bool Device::detect_bootloader_mode(bool strict) {
-    if(!check_output(strict? bootloaderRegexStrict: bootloaderRegexNoStrict, chrono::milliseconds(1000))){
-        serial_stream << "i" << flush;
-        return check_output(bootloaderRegexStrict, chrono::milliseconds(1000));
-    }
-    return true;
-}
-
 bool Device::prepare_flash() {
     if (!check_device_present())
         throw DeviceNotFoundException("Device not found");
@@ -69,7 +61,7 @@ bool UARTDevice::prepare_flash() {
 
     //send a 'U' for autobaud the interface
     serial_stream << "U" << flush;
-    if (!detect_bootloader_mode(false))
+    if (!detect_bootloader_mode(std::chrono::milliseconds(5000), false))
         throw DeviceNotFoundException("Device not connected or not in bootloader mode");
 
     cout << " :: Enabling firmware upload mode ::" << endl;

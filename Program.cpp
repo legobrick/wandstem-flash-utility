@@ -62,7 +62,7 @@ void Program::init(int argc, const char *argv[]) {
             ("mode,m", po::value<flash_mode>(),
              "Indicates how the board is connected:\n - a for auto (default);\n - u for USB;\n - s for serial adapter")
             ("device,d", po::value<string>(), "Specifies the tty device path\nDefault:\n    USB mode: \t/dev/ttyACM0\n    serial mode: \t/dev/ttyUSB0")
-            ("baud,b", po::value<int>(), "Specifies the baud rate to be used\nDefault:\n    USB mode: \t115200\n    serial mode: \t9600");
+            ("baud,b", po::value<int>(), "Specifies the baud rate to be used\nDefault:\n    USB mode: \t9600\n    serial mode: \t115200");
     total.add(required_options).add(connection_options);
 
     po::variables_map vm;
@@ -167,7 +167,7 @@ void Program::read_to_end() {
              << ". Flash operation aborted." << endl;
     }
     if (!device_inited) return;
-    if (auto *p = dynamic_cast<USBDevice*>(device)) {
+    if (dynamic_cast<USBDevice*>(device) != nullptr) {
         cout << "Cannot read standard output from a device connected in USB mode." << endl;
         return;
     }

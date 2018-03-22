@@ -39,8 +39,9 @@ protected:
         std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now() + timeout;
         std::regex r(regex_string);
         bool detected = false;
+        std::string s;
         while (!detected && std::chrono::system_clock::now() < end) {
-            std::string s = read_and_print<std::string>();
+            s = read_and_print<std::string>();
             if (regex_match(s, r))
                 detected = true;
         }
@@ -81,7 +82,14 @@ protected:
      * \param strict if the check doesn't also admit the '?' for unrecognized input
      * \return if the device is in bootloader mode.
      */
-    bool detect_bootloader_mode(bool strict = true);
+    template<typename _Rep, typename _Period>
+    bool detect_bootloader_mode(const std::chrono::duration<_Rep, _Period> &timeout, bool strict = true)  {
+        if(!check_output(strict? bootloaderRegexStrict: bootloaderRegexNoStrict, timeout)){
+            serial_stream << "i" << std::flush;
+            return check_output(bootloaderRegexStrict, timeout);
+        }
+        return true;
+    }
 
     /**
      * Prepares the device to be flashed.
@@ -172,7 +180,7 @@ public:
      * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    UARTDevice(std::string path, bool infinite_timeout = false) : Device(std::move(path), 115200, infinite_timeout) {};
+    explicit UARTDevice(std::string path, bool infinite_timeout = false) : Device(std::move(path), 115200, infinite_timeout) {};
 
     /**
      * Constructor. Initializes a default serial connected Wandstem with the specified path and the specified baud rate.
@@ -203,7 +211,7 @@ public:
      * \param infinite_timeout if the timeout should be limited to 2,5s or infinite
      * \return
      */
-    USBDevice(std::string path, bool infinite_timeout = false) : Device(std::move(path), 9600, infinite_timeout) {};
+    explicit USBDevice(std::string path, bool infinite_timeout = false) : Device(std::move(path), 9600, infinite_timeout) {};
 
     /**
      * Constructor. Initializes a default USB connected Wandstem with the specified path and the specified baud rate.
