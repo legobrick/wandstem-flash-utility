@@ -126,7 +126,7 @@ void Program::init_device(bool infinite_timeout) {
                 break;
         }
     } else {
-        if (boost::to_upper_copy(args.device_path).find("ACM")) {
+        if (str_toupper(args.device_path).find("ACM") != std::string::npos) {
             if (args.baud == -1)
                 device = new USBDevice(args.device_path, infinite_timeout);
             else
