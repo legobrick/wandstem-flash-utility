@@ -91,8 +91,12 @@ void Program::init(int argc, const char *argv[]) {
 
     //if baud is specified, default is ignored
 
-    if (vm.count("baud"))
-        args.baud = vm["baud"].as<unsigned int>();
+    if (vm.count("baud")) {
+        auto baud = vm["baud"].as<int>();
+        if (baud < 0)
+            throw runtime_error("Baud rate cannot be negative.");
+        args.baud = static_cast<unsigned int>(baud);
+    }
 
     signal(SIGINT, stop);
 
